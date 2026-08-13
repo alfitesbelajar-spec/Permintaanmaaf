@@ -1015,6 +1015,86 @@
             }
         }
 
+    /* =========================================================
+   PERFORMANCE OPTIMIZATION — SMOOTH ROMANTIC
+   Decorative effects are kept, but continuous expensive
+   filters/shadows are replaced with static GPU-friendly styles.
+   ========================================================= */
+.app::after {
+    filter: none;
+    animation: none;
+    opacity: .72;
+}
+.paper {
+    animation: none;
+    box-shadow: 0 22px 55px rgba(115,82,58,.16);
+}
+.paper::before {
+    animation: none;
+    transform: scale(.94);
+    opacity: .42;
+}
+.corner {
+    animation: none;
+    filter: none;
+}
+.seal {
+    animation: none;
+}
+.btn::before {
+    animation: none;
+    opacity: 0;
+}
+.btn:hover::before, .btn:focus-visible::before {
+    animation: buttonShineOnce .75s ease-out 1;
+    opacity: 1;
+}
+@keyframes buttonShineOnce {
+    0% { left: -70%; opacity: 0; }
+    20% { opacity: .8; }
+    100% { left: 135%; opacity: 0; }
+}
+.envelope {
+    animation: none;
+    filter: drop-shadow(0 14px 22px rgba(128,88,74,.12));
+}
+.envelope-stage::before, .envelope-stage::after {
+    animation: none;
+    opacity: .28;
+}
+.gift {
+    animation: none;
+    filter: drop-shadow(0 7px 7px rgba(128,80,64,.12));
+}
+.promise-line {
+    animation: none;
+}
+.celebrate {
+    animation: none;
+}
+.modal::before {
+    animation: none;
+    opacity: .55;
+    transform: translate(-50%,-50%) scale(.95);
+}
+.romantic-bokeh {
+    contain: strict;
+}
+.bokeh {
+    box-shadow: 0 0 10px rgba(255,193,210,.42);
+    will-change: transform, opacity;
+}
+.ambient-heart {
+    text-shadow: none;
+    will-change: transform, opacity;
+}
+@media (max-width: 600px) {
+    .app::after { opacity: .55; }
+    .corner { opacity: .78; }
+    .paper { box-shadow: 0 16px 40px rgba(115,82,58,.14); }
+}
+
+    
     </style>
 </head>
 
@@ -1163,11 +1243,6 @@
         </div>
     </div>
 
-    <!-- ===== MUSIC ===== -->
-    <audio id="bgMusic" loop autoplay muted preload="auto" style="display:none;">
-        <source src="https://files.catbox.moe/er9p5k.mp3" type="audio/mpeg">
-    </audio>
-
     <script>
         /* =========================================================
            DATA / STATE
@@ -1197,76 +1272,40 @@
         }
 
         /* =========================================================
-           MUSIC - auto play muted, unmute on first click
-           ========================================================= */
-        const bgMusic = $('bgMusic');
-        let soundEnabled = false;
-
-        function enableSound() {
-            if (soundEnabled) return;
-            bgMusic.muted = false;
-            bgMusic.volume = 0.6;
-            if (bgMusic.paused) {
-                bgMusic.play().catch(e => console.log('Play error:', e));
-            }
-            soundEnabled = true;
-        }
-
-        // Unmute when user clicks on key interactive elements
-        document.getElementById('openLetter').addEventListener('click', enableSound);
-        document.getElementById('envelope').addEventListener('click', enableSound);
-        // Also when any button or the page is clicked (fallback)
-        document.addEventListener('click', function firstClick() {
-            enableSound();
-            document.removeEventListener('click', firstClick);
-        });
-
-        /* =========================================================
            PARTICLES
            ========================================================= */
-        function flowerShower(count = 38, duration = 1.55) {
-            const layer = $("petalLayer");
-            layer.innerHTML = "";
-            for (let i = 0; i < count; i++) {
-                const p = document.createElement("span");
-                p.className = "petal-particle";
-                p.style.left = Math.random() * 100 + "vw";
-                p.style.top = (-10 - Math.random() * 20) + "vh";
-                p.style.transform = `rotate(${Math.random()*360}deg) scale(${.55+Math.random()*.9})`;
-                layer.appendChild(p);
-                gsap.to(p, {
-                    y: window.innerHeight * (0.9 + Math.random() * .35),
-                    x: (Math.random() - .5) * 230,
-                    rotation: 360 + Math.random() * 500,
-                    duration: duration + Math.random() * .7,
-                    delay: Math.random() * .18,
-                    ease: "power1.inOut",
-                    onComplete: () => p.remove()
-                });
-            }
-        }
+        function flowerShower(count = 22, duration = 1.25) {
+    const layer = $("petalLayer");
+    layer.innerHTML = "";
+    const fragment = document.createDocumentFragment();
+    const safeCount = Math.min(count, 28);
+    for (let i = 0; i < safeCount; i++) {
+        const p = document.createElement("span");
+        p.className = "petal-particle";
+        p.style.left = Math.random() * 100 + "vw";
+        p.style.top = (-8 - Math.random() * 14) + "vh";
+        p.style.transform = `rotate(${Math.random()*360}deg) scale(${.55+Math.random()*.75})`;
+        fragment.appendChild(p);
+        gsap.to(p, { y: window.innerHeight * (.88 + Math.random() * .18), x: (Math.random() - .5) * 180, rotation: 260 + Math.random() * 360, duration: duration + Math.random() * .45, delay: Math.random() * .12, ease: "power1.out", overwrite: true, onComplete: () => p.remove() });
+    }
+    layer.appendChild(fragment);
+}
 
-        function heartBurst(count = 28) {
-            const layer = $("heartLayer");
-            for (let i = 0; i < count; i++) {
-                const h = document.createElement("span");
-                h.className = "heart";
-                h.textContent = ["❤", "♡", "💗", "💖", "🌷"][Math.floor(Math.random() * 5)];
-                h.style.left = (45 + Math.random() * 10) + "vw";
-                h.style.top = (55 + Math.random() * 10) + "vh";
-                layer.appendChild(h);
-                gsap.fromTo(h, { scale: .2, opacity: 0, y: 0, x: 0, rotation: -20 }, {
-                    scale: .8 + Math.random() * 1.3,
-                    opacity: 1,
-                    x: (Math.random() - .5) * 420,
-                    y: -220 - Math.random() * 430,
-                    rotation: (Math.random() - .5) * 180,
-                    duration: 1.7 + Math.random() * .8,
-                    ease: "power2.out",
-                    onComplete: () => h.remove()
-                });
-            }
-        }
+        function heartBurst(count = 16) {
+    const layer = $("heartLayer");
+    const fragment = document.createDocumentFragment();
+    const safeCount = Math.min(count, 20);
+    for (let i = 0; i < safeCount; i++) {
+        const h = document.createElement("span");
+        h.className = "heart";
+        h.textContent = ["❤", "♡", "💗", "🌷"][Math.floor(Math.random() * 4)];
+        h.style.left = (46 + Math.random() * 8) + "vw";
+        h.style.top = (58 + Math.random() * 7) + "vh";
+        fragment.appendChild(h);
+        gsap.fromTo(h, { scale: .25, opacity: 0, y: 0, x: 0, rotation: -15 }, { scale: .75 + Math.random() * .9, opacity: .95, x: (Math.random() - .5) * 340, y: -190 - Math.random() * 330, rotation: (Math.random() - .5) * 150, duration: 1.35 + Math.random() * .55, ease: "power1.out", overwrite: true, onComplete: () => h.remove() });
+    }
+    layer.appendChild(fragment);
+}
 
         /* =========================================================
            PAGE TRANSITIONS
@@ -1278,7 +1317,7 @@
             const newPage = pageEls[target];
             const overlay = $("transitionOverlay");
 
-            if (!skipOverlay) flowerShower(48, 1.5);
+            if (!skipOverlay) flowerShower(22, 1.25);
 
             const tl = gsap.timeline({
                 onComplete: () => {
@@ -1320,6 +1359,7 @@
                     duration: .5,
                     ease: "power2.out"
                 });
+                // scroll to top just in case
                 const paper = document.querySelector("#page3 .paper");
                 if (paper) paper.scrollTop = 0;
             }
@@ -1329,7 +1369,7 @@
            COVER INTRO
            ========================================================= */
         function coverIntro() {
-            flowerShower(55, 1.7);
+            flowerShower(24, 1.35);
             gsap.from("#page1 .paper", {
                 y: 20,
                 opacity: 0,
@@ -1358,7 +1398,7 @@
             const newPage = pageEls[1];
             const overlay = $("transitionOverlay");
 
-            flowerShower(40, 1.4);
+            flowerShower(20, 1.2);
 
             gsap.timeline({
                 onComplete: () => {
@@ -1461,47 +1501,24 @@
            FULL TYPING EFFECT (page 2)
            ========================================================= */
         function startFullTyping() {
-            const target = $("typingText");
-            const wrap = $("typingWrap");
-            const title = $("typingTitle");
-
-            target.innerHTML = "";
-            wrap.scrollTop = 0;
-
-            gsap.to(title, { opacity: 1, duration: 0.5, delay: 0.2 });
-
-            const fullHtml = APP.fullLetter;
-            let index = 0;
-            let output = '';
-
-            const typeChar = () => {
-                if (index >= fullHtml.length) {
-                    wrap.scrollTop = wrap.scrollHeight;
-                    return;
-                }
-                const ch = fullHtml[index];
-                if (ch === '<') {
-                    const end = fullHtml.indexOf('>', index);
-                    if (end !== -1) {
-                        const tag = fullHtml.substring(index, end + 1);
-                        output += tag;
-                        index = end + 1;
-                        target.innerHTML = output;
-                        wrap.scrollTop = wrap.scrollHeight;
-                        setTimeout(typeChar, 20);
-                        return;
-                    }
-                }
-                output += ch;
-                index++;
-                target.innerHTML = output;
-                wrap.scrollTop = wrap.scrollHeight;
-                const delay = (ch === ' ' || ch === '\n') ? 30 : 20;
-                setTimeout(typeChar, delay);
-            };
-
-            setTimeout(typeChar, 700);
+    if (APP.typingTimer) { clearTimeout(APP.typingTimer); APP.typingTimer = null; }
+    const target = $("typingText"), wrap = $("typingWrap"), title = $("typingTitle");
+    target.innerHTML = ""; wrap.scrollTop = 0;
+    gsap.to(title, { opacity: 1, duration: 0.45, delay: 0.15 });
+    const fullHtml = APP.fullLetter; let index = 0, output = "";
+    const typeChunk = () => {
+        if (index >= fullHtml.length) { wrap.scrollTop = wrap.scrollHeight; return; }
+        let chars = 3;
+        while (chars-- > 0 && index < fullHtml.length) {
+            const ch = fullHtml[index];
+            if (ch === "<") { const end = fullHtml.indexOf(">", index); if (end !== -1) { output += fullHtml.slice(index, end + 1); index = end + 1; continue; } }
+            output += ch; index++;
         }
+        target.innerHTML = output; wrap.scrollTop = wrap.scrollHeight;
+        APP.typingTimer = setTimeout(typeChunk, 28);
+    };
+    APP.typingTimer = setTimeout(typeChunk, 550);
+}
 
         /* =========================================================
            MODAL
@@ -1557,7 +1574,7 @@
                     APP.modalOpen = false;
                     $("sendMessage").disabled = false;
                     $("closeModal").disabled = false;
-                    heartBurst(38);
+                    heartBurst(16);
                 }
             })
                 .to(modal, { scale: .82, y: 15, opacity: 0, duration: .3, ease: "power2.in" })
@@ -1581,7 +1598,7 @@
         });
 
         $("replyButton").addEventListener("click", () => {
-            flowerShower(52, 1.45);
+            flowerShower(24, 1.25);
             showPage(3);
         });
 
@@ -1601,51 +1618,21 @@
            ROMANTIC AMBIENT PARTICLES
            ========================================================= */
         function createAmbientRomance() {
-            const app = document.querySelector(".app");
-            if (!app) return;
-
-            const bokehLayer = document.createElement("div");
-            bokehLayer.className = "romantic-bokeh";
-            bokehLayer.setAttribute("aria-hidden", "true");
-
-            for (let i = 0; i < 18; i++) {
-                const b = document.createElement("span");
-                b.className = "bokeh";
-                b.style.left = Math.random() * 100 + "vw";
-                b.style.bottom = (-10 - Math.random() * 25) + "vh";
-                b.style.width = b.style.height = (3 + Math.random() * 8) + "px";
-                b.style.animationDuration = (8 + Math.random() * 10) + "s";
-                b.style.animationDelay = (-Math.random() * 12) + "s";
-                bokehLayer.appendChild(b);
-            }
-
-            for (let i = 0; i < 12; i++) {
-                const h = document.createElement("span");
-                h.className = "ambient-heart";
-                h.textContent = ["♡", "♥", "❤", "❥"][Math.floor(Math.random() * 4)];
-                h.style.left = Math.random() * 100 + "vw";
-                h.style.setProperty("--drift", ((Math.random() - .5) * 150) + "px");
-                h.style.fontSize = (10 + Math.random() * 12) + "px";
-                h.style.animationDuration = (10 + Math.random() * 10) + "s";
-                h.style.animationDelay = (-Math.random() * 15) + "s";
-                bokehLayer.appendChild(h);
-            }
-
-            app.appendChild(bokehLayer);
-        }
+    const app = document.querySelector(".app"); if (!app) return;
+    const layer = document.createElement("div"); layer.className = "romantic-bokeh"; layer.setAttribute("aria-hidden", "true");
+    const fragment = document.createDocumentFragment();
+    for (let i = 0; i < 5; i++) {
+        const b = document.createElement("span"); b.className = "bokeh"; b.style.left = Math.random()*100+"vw"; b.style.bottom = (-8-Math.random()*18)+"vh"; b.style.width=b.style.height=(3+Math.random()*6)+"px"; b.style.animationDuration=(14+Math.random()*8)+"s"; b.style.animationDelay=(-Math.random()*14)+"s"; fragment.appendChild(b);
+    }
+    for (let i = 0; i < 3; i++) {
+        const h = document.createElement("span"); h.className="ambient-heart"; h.textContent=["♡","♥","❥"][Math.floor(Math.random()*3)]; h.style.left=Math.random()*100+"vw"; h.style.setProperty("--drift",((Math.random()-.5)*120)+"px"); h.style.fontSize=(10+Math.random()*8)+"px"; h.style.animationDuration=(16+Math.random()*8)+"s"; h.style.animationDelay=(-Math.random()*18)+"s"; fragment.appendChild(h);
+    }
+    layer.appendChild(fragment); app.appendChild(layer);
+}
 
         function romanticButtonPulse() {
-            document.querySelectorAll(".btn").forEach(btn => {
-                gsap.to(btn, {
-                    boxShadow: "0 10px 30px rgba(199,127,139,.30)",
-                    duration: 1.5,
-                    repeat: -1,
-                    yoyo: true,
-                    ease: "sine.inOut",
-                    delay: Math.random() * .8
-                });
-            });
-        }
+    // Continuous box-shadow animation intentionally removed for performance.
+}
 
         /* =========================================================
            STARTUP
@@ -1657,9 +1644,6 @@
             updateProgress();
             resetEnvelope();
             $("typingTitle").style.opacity = "0";
-
-            // Try to play music (will be muted initially)
-            bgMusic.play().catch(e => console.log('Autoplay blocked, will play on user interaction.'));
         });
     </script>
 </body>
