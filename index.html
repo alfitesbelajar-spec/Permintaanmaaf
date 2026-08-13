@@ -1581,12 +1581,95 @@
                 .to(backdrop, { autoAlpha: 0, duration: .35, ease: "power2.out" }, "-=.12");
         }
 
+
+        /* =========================================================
+           BACKGROUND MUSIC
+           Starts after the user's first intentional interaction.
+           ========================================================= */
+        function initBackgroundMusic() {
+            const bgMusic = $("bgMusic");
+            const musicToggle = $("musicToggle");
+            const musicIcon = $("musicIcon");
+            const musicStatus = $("musicStatus");
+
+            if (!bgMusic || !musicToggle) return;
+
+            let musicStarted = false;
+            let musicFadeTimer = null;
+
+            function fadeMusicIn() {
+                if (musicStarted) return;
+
+                musicStarted = true;
+                bgMusic.volume = 0;
+
+                const playPromise = bgMusic.play();
+                if (playPromise && typeof playPromise.catch === "function") {
+                    playPromise.catch(() => {
+                        musicStarted = false;
+                    });
+                }
+
+                clearInterval(musicFadeTimer);
+                let volume = 0;
+                musicFadeTimer = setInterval(() => {
+                    volume += 0.025;
+                    bgMusic.volume = Math.min(volume, 0.35);
+                    if (volume >= 0.35) clearInterval(musicFadeTimer);
+                }, 80);
+            }
+
+            function updateMusicUI() {
+                const playing = !bgMusic.paused;
+                musicIcon.textContent = playing ? "🎵" : "🔇";
+                musicStatus.textContent = playing ? "Musik ON" : "Musik OFF";
+                musicToggle.classList.toggle("is-off", !playing);
+                musicToggle.setAttribute("aria-label", playing ? "Matikan musik" : "Nyalakan musik");
+                musicToggle.title = playing ? "Matikan musik" : "Nyalakan musik";
+            }
+
+            musicToggle.addEventListener("click", () => {
+                if (bgMusic.paused) {
+                    bgMusic.volume = 0.35;
+                    bgMusic.play().catch(() => {});
+                } else {
+                    bgMusic.pause();
+                }
+                updateMusicUI();
+            });
+
+            bgMusic.addEventListener("play", updateMusicUI);
+            bgMusic.addEventListener("pause", updateMusicUI);
+            updateMusicUI();
+
+            // Start music from the existing first CTA.
+            $("openLetter").addEventListener("click", () => {
+                fadeMusicIn();
+                showEnvelope();
+            });
+
+            // Fallback: if the envelope itself is clicked first.
+            $("envelope").addEventListener("click", function(e) {
+                if (!musicStarted) fadeMusicIn();
+                if (e.target.closest("#continueBtn")) return;
+                if (APP.current !== 1) return;
+                openEnvelopeClick();
+            });
+        }
+
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", initBackgroundMusic);
+        } else {
+            initBackgroundMusic();
+        }
+
         /* =========================================================
            EVENTS
            ========================================================= */
-        $("openLetter").addEventListener("click", showEnvelope);
+        $("openLetter").addEventListener("click", () => { fadeMusicIn(); showEnvelope(); });
 
         $("envelope").addEventListener("click", function(e) {
+            if (!musicStarted) fadeMusicIn();
             if (e.target.closest("#continueBtn")) return;
             if (APP.current !== 1) return;
             openEnvelopeClick();
@@ -1646,5 +1729,53 @@
             $("typingTitle").style.opacity = "0";
         });
     </script>
+
+    <!-- ===== BACKGROUND MUSIC ===== -->
+    <audio id="bgMusic" preload="metadata" loop>
+        <source src="./music/romantic.mp3" type="audio/mpeg">
+    </audio>
+
+    <button id="musicToggle" class="music-toggle" type="button"
+        aria-label="Matikan musik" title="Matikan musik">
+        <span id="musicIcon">🎵</span>
+        <span id="musicStatus">Musik ON</span>
+    </button>
+
+    <style>
+        /* Lightweight music control: transform/opacity only */
+        .music-toggle {
+            position: fixed;
+            right: 18px;
+            top: 18px;
+            z-index: 9999;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            border: 1px solid rgba(139,116,105,.20);
+            border-radius: 999px;
+            padding: 9px 13px;
+            background: rgba(255,247,234,.92);
+            color: #715b52;
+            box-shadow: 0 8px 24px rgba(95,68,54,.10);
+            font: 600 12px/1 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            cursor: pointer;
+            transition: transform .18s ease, opacity .18s ease;
+        }
+        .music-toggle:hover { transform: translateY(-2px); }
+        .music-toggle:active { transform: translateY(0) scale(.97); }
+        .music-toggle.is-off { opacity: .78; }
+        @media (max-width: 600px) {
+            .music-toggle {
+                right: 12px;
+                top: 12px;
+                padding: 8px 10px;
+            }
+            #musicStatus { display: none; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .music-toggle { transition: none; }
+        }
+    </style>
+
 </body>
 </html>
